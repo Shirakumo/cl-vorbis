@@ -37,4 +37,4 @@ else
 endif
 
 all:
-	$(CC) -O3 -ftree-vectorize -msse4.2 -mfpmath=sse -shared -o static/$(OUT).$(SUFFIX) -fPIC -static-libgcc -include glibc-2.13.h stb_vorbis.c -l m
+	$(CC) -O3 -ftree-vectorize -msse4.2 -mfpmath=sse -shared -o static/$(OUT).$(SUFFIX) -fPIC -static-libgcc -include glibc-2.13.h stb_vorbis_patch.c -l m
