@@ -1,0 +1,5 @@
+
+
+## Included Sources
+- "stb_vorbis.c"(https://github.com/nothings/stb/blob/master/stb_vorbis.c)
+- "glibc-2.13.h"(https://github.com/wheybags/glibc_version_header/blob/master/version_headers/x64/force_link_glibc_2.13.h)
