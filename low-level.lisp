@@ -1,10 +1,16 @@
+#|
+ This file is a part of cl-vorbis
+ (c) 2021 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ Author: Nicolas Hafner <shinmera@tymoon.eu>
+|#
+
 (in-package #:org.shirakumo.vorbis.cffi)
 
 (defvar *here* #.(or *compile-file-pathname* *load-pathname* *default-pathname-defaults*))
 (defvar *static* (make-pathname :name NIL :type NIL :defaults (merge-pathnames "static/" *here*)))
 (pushnew *static* cffi:*foreign-library-directories*)
 
-(define-foreign-library libvorbis
+(cffi:define-foreign-library libvorbis
   (:darwin (:or #+X86 "libvorbis-mac-i686.dylib"
                 #+X86-64 "libvorbis-mac-amd64.dylib"))
   (:unix (:or #+X86 "libvorbis-lin-i686.so"
@@ -35,7 +41,11 @@
   (:seek-failed)
   (:ogg-skeleton-not-supported))
 
-(cffi:defcstruct info
+(cffi:defcstruct (buffer :class buffer :conc-name buffer-)
+  (data :pointer)
+  (length :int))
+
+(cffi:defcstruct (info :class info :conc-name info-)
   (sample-rate :unsigned-int)
   (channels :int)
   (setup-memory-required :unsigned-int)
@@ -43,10 +53,10 @@
   (temp-memory-required :unsigned-int)
   (max-frame-size :int))
 
-(cffi:defcstruct comment
+(cffi:defcstruct (comment :class comment :conc-name comment-)
   (vendor :string)
-  (comment-list-length :int)
-  (comment-list :pointer))
+  (list-length :int)
+  (list :pointer))
 
 (cffi:defcfun (get-info "stb_vorbis_get_info_") :void
   (vorbis :pointer)
@@ -56,7 +66,7 @@
   (vorbis :pointer)
   (comment :pointer))
 
-(cffi:defcfun (get-error "stb_vorbis_get_error") :int
+(cffi:defcfun (get-error "stb_vorbis_get_error") error
   (vorbis :pointer))
 
 (cffi:defcfun (close "stb_vorbis_close") :void

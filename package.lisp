@@ -1,0 +1,58 @@
+#|
+ This file is a part of cl-vorbis
+ (c) 2021 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
+ Author: Nicolas Hafner <shinmera@tymoon.eu>
+|#
+
+(defpackage #:org.shirakumo.vorbis.cffi
+  (:use #:cl)
+  (:shadow #:close #:error)
+  (:export
+   #:error
+   #:buffer
+   #:buffer-data
+   #:buffer-length
+   #:info
+   #:info-sample-rate
+   #:info-channels
+   #:info-setup-memory-required
+   #:info-setup-temp-memory-required
+   #:info-temp-memory-required
+   #:info-max-frame-size
+   #:comment
+   #:comment-vendor
+   #:comment-list-length
+   #:comment-list
+   #:get-info
+   #:get-comment
+   #:get-error
+   #:close
+   #:get-sample-offset
+   #:get-file-offset
+   #:open-pushdata
+   #:decode-frame-pushdata
+   #:flush-pushdata
+   #:decode-filename
+   #:decode-memory
+   #:open-memory
+   #:open-filename
+   #:open-file
+   #:open-file-section
+   #:seek-frame
+   #:seek
+   #:seek-start
+   #:stream-length-in-samples
+   #:stream-length-in-seconds
+   #:get-frame-float
+   #:get-frame-short-interleaved
+   #:get-frame-short
+   #:get-samples-float-interleaved
+   #:get-samples-float
+   #:get-samples-short-interleaved
+   #:get-samples-short))
+
+(defpackage #:org.shirakumo.vorbis
+  (:use #:cl)
+  (:local-nicknames
+   (#:vorbis #:org.shirakumo.vorbis.cffi))
+  (:export))
