@@ -7,7 +7,7 @@ For this tutorial we assume that ``org.shirakumo.vorbis`` has a local nickname o
 :: common lisp
 (vorbis:with-file (file "test.ogg")
   (values (vorbis:channels file)
-          (vorbis:sample-rate file)
+          (vorbis:samplerate file)
           (vorbis:decode-frame file)))
 ::
 

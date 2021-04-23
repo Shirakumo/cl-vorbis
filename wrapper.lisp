@@ -142,7 +142,7 @@
            (buffers (or buffers (loop for i from 0 below channels
                                       collect (make-array samples :element-type 'single-float)))))
       (loop for i from 0 below channels
-            for buffer = (pop buffers)
+            for buffer in buffers
             for pointer = (cffi:mem-aref output :pointer i)
             do (dotimes (i samples)
                  (setf (aref buffer i) (cffi:mem-aref pointer :float i))))

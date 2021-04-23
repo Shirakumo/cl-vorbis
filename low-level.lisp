@@ -153,7 +153,7 @@
 (cffi:defcfun (get-frame-float "stb_vorbis_get_frame_float") :int
   (vorbis :pointer)
   (channels :pointer)
-  (output :float))
+  (output :pointer))
 
 (cffi:defcfun (get-frame-short-interleaved "stb_vorbis_get_frame_short_interleaved") :int
   (vorbis :pointer)
