@@ -21,4 +21,5 @@
   :depends-on (:cffi
                :trivial-features
                :trivial-garbage
+               :static-vectors
                :documentation-utils))

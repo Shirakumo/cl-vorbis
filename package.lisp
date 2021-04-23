@@ -8,6 +8,7 @@
   (:use #:cl)
   (:shadow #:close #:error)
   (:export
+   #:libvorbis
    #:error
    #:buffer
    #:buffer-data
@@ -55,4 +56,29 @@
   (:use #:cl)
   (:local-nicknames
    (#:vorbis #:org.shirakumo.vorbis.cffi))
-  (:export))
+  (:shadow #:open #:close)
+  (:export
+   #:init
+   #:file
+   #:handle
+   #:channels
+   #:sample-rate
+   #:max-frame-size
+   #:close
+   #:open
+   #:open-file
+   #:open-pointer
+   #:open-vector
+   #:with-file
+   #:file-offset
+   #:sample-index
+   #:comments
+   #:vendor
+   #:seek
+   #:seek-frame
+   #:sample-count
+   #:duration
+   #:decode-frame
+   #:decode-frame-ptrs
+   #:decode
+   #:decode-interleaved))
