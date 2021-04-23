@@ -1,6 +1,8 @@
 CC ?= gcc
 OUT := libvorbis
 SUFFIX := so
+CFLAGS := -O3 -ftree-vectorize -msse4.2 -mfpmath=sse -fPIC
+LDFLAGS := -l m
 
 ifeq ($(OS),Windows_NT)
     OUT := $(OUT)-win
@@ -19,6 +21,7 @@ else
     UNAME_S := $(shell uname -s)
     ifeq ($(UNAME_S),Linux)
         OUT := $(OUT)-lin
+	CFLAGS += -static-libgcc -include glibc-2.13.h
     endif
     ifeq ($(UNAME_S),Darwin)
         OUT := $(OUT)-mac
@@ -37,4 +40,4 @@ else
 endif
 
 all:
-	$(CC) -O3 -ftree-vectorize -msse4.2 -mfpmath=sse -shared -o static/$(OUT).$(SUFFIX) -fPIC -static-libgcc -include glibc-2.13.h stb_vorbis_patch.c -l m
+	$(CC) -shared -o static/$(OUT).$(SUFFIX) $(CFLAGS) stb_vorbis_patch.c $(LDFLAGS)
