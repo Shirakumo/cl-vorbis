@@ -18,7 +18,7 @@
   (:windows (:or #+X86 "libvorbis-win-i686.dll"
                  #+X86-64 "libvorbis-win-amd64.dll")))
 
-(cffi:defcenum error
+(cffi:defcenum (error :int)
   (:no-error 0)
   (:need-more-data 1)
   (:invalid-api-mixing)

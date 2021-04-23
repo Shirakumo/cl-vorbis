@@ -40,6 +40,9 @@
     (T
      (error 'vorbis-error :code error))))
 
+(defun check-file-for-error (file)
+  (check-error (vorbis:get-error file)))
+
 (defstruct (file
             (:conc-name NIL)
             (:constructor %make-file (handle channels samplerate max-frame-size))
@@ -73,14 +76,17 @@
 
 (defun open-file (path &key buffer)
   (cffi:with-foreign-objects ((error 'vorbis:error))
-    (make-file (vorbis:open-filename (namestring path) error (or buffer (cffi:null-pointer))) error)))
+    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
+    (make-file (vorbis:open-filename (namestring (truename path)) error (or buffer (cffi:null-pointer))) error)))
 
 (defun open-pointer (memory length &key buffer)
   (cffi:with-foreign-objects ((error 'vorbis:error))
+    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
     (make-file (vorbis:open-memory memory length error (or buffer (cffi:null-pointer))) error)))
 
 (defun open-vector (vector &key buffer (start 0) (end (length vector)))
   (cffi:with-foreign-objects ((error 'vorbis:error))
+    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
     (make-file (vorbis:open-memory (static-vectors:static-vector-pointer vector :offset start) (- end start) error (or buffer (cffi:null-pointer))) error)))
 
 (defmacro with-file ((file input &rest args) &body body)
@@ -129,7 +135,8 @@
 (defun decode-frame (file &optional buffers)
   (cffi:with-foreign-objects ((channels :int)
                               (output :pointer))
-    (let* ((samples (vorbis:get-frame-float (handle file) channels output))
+    (let* ((samples (prog1 (vorbis:get-frame-float (handle file) channels output)
+                      (check-file-for-error file)))
            (channels (cffi:mem-ref channels :int))
            (output (cffi:mem-ref output :pointer))
            (buffers (or buffers (loop for i from 0 below channels
@@ -144,7 +151,8 @@
 (defun decode-frame-ptrs (file)
   (cffi:with-foreign-objects ((channels :int)
                               (output :pointer))
-    (let ((samples (vorbis:get-frame-float (handle file) channels output))
+    (let ((samples (prog1 (vorbis:get-frame-float (handle file) channels output)
+                     (check-file-for-error file)))
           (channels (cffi:mem-ref channels :int))
           (output (cffi:mem-ref output :pointer)))
       (values output samples channels))))
@@ -165,9 +173,11 @@
                  (loop for i from 0
                        for pointer in pointers
                        do (setf (cffi:mem-aref arrays :pointer i) pointer))
-                 (vorbis:get-samples-float (handle file) count arrays (- end start)))))
+                 (prog1 (vorbis:get-samples-float (handle file) count arrays (- end start))
+                   (check-file-for-error file)))))
       (pin #'inner 0))))
 
 (defun decode-interleaved (file buffer &key (start 0) end)
   (with-pinned-buffer (pointer buffer :offset start)
-    (vorbis:get-samples-float-interleaved (handle file) (channels file) pointer (- end start))))
+    (prog1 (vorbis:get-samples-float-interleaved (handle file) (channels file) pointer (- end start))
+      (check-file-for-error file))))
