@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(in-package #:org.shirakumo.vorbis)
+(in-package #:org.shirakumo.fraf.vorbis)
 
 (docs:define-docs
   (type need-more-data

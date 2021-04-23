@@ -3,7 +3,7 @@
 (defpackage "vorbis-docs"
   (:use #:cl)
   (:local-nicknames
-   (#:vorbis #:org.shirakumo.vorbis)))
+   (#:vorbis #:org.shirakumo.fraf.vorbis)))
 
 (defclass page* (staple:simple-page)
   ()

@@ -2,7 +2,7 @@
 This is a small library wrapping stb_vorbis to provide a fast, libre, and easy-to-ship OGG/Vorbis decoder.
 
 ## How To
-For this tutorial we assume that ``org.shirakumo.vorbis`` has a local nickname of ``vorbis``.
+For this tutorial we assume that ``org.shirakumo.fraf.vorbis`` has a local nickname of ``vorbis``.
 
 :: common lisp
 (vorbis:with-file (file "test.ogg")

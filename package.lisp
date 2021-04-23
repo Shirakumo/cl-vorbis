@@ -4,7 +4,7 @@
  Author: Nicolas Hafner <shinmera@tymoon.eu>
 |#
 
-(defpackage #:org.shirakumo.vorbis.cffi
+(defpackage #:org.shirakumo.fraf.vorbis.cffi
   (:use #:cl)
   (:shadow #:close #:error)
   (:export
@@ -52,10 +52,10 @@
    #:get-samples-short-interleaved
    #:get-samples-short))
 
-(defpackage #:org.shirakumo.vorbis
+(defpackage #:org.shirakumo.fraf.vorbis
   (:use #:cl)
   (:local-nicknames
-   (#:vorbis #:org.shirakumo.vorbis.cffi))
+   (#:vorbis #:org.shirakumo.fraf.vorbis.cffi))
   (:shadow #:open #:close)
   (:export
    #:need-more-data
