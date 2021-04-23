@@ -12,7 +12,7 @@
 (define-condition vorbis-error (error)
   ((code :initarg :code :reader code))
   (:report (lambda (c s) (format s "The vorbis operation failed with the following error:~%  ~a"
-                                 (code s)))))
+                                 (code c)))))
 
 (defun init ()
   (cffi:load-foreign-library 'vorbis:libvorbis))
@@ -31,7 +31,7 @@
                (T
                 (,thunk (static-vectors:static-vector-pointer ,datag :offset (* ,offset 4)))))))))
 
-(defun check-error (&optional (error (vorbis:get-error)))
+(defun check-error (error)
   (case error
     (:no-error
      NIL)
@@ -58,7 +58,7 @@
 
 (defun close (file)
   (vorbis:close (handle file))
-  (setf (handle file) NIL))
+  (setf (handle file) (cffi:null-pointer)))
 
 (defun open (thing &rest initargs &key buffer start end)
   (declare (ignore buffer start end))
@@ -97,7 +97,7 @@
   (vorbis:get-file-offset (handle file)))
 
 (defun sample-index (file)
-  (vorbis:get-sample-index (handle file)))
+  (vorbis:get-sample-offset (handle file)))
 
 (defun (setf sample-index) (index file)
   (vorbis:seek (handle file) index)
@@ -141,7 +141,7 @@
                  (setf (aref buffer i) (cffi:mem-aref pointer :float i))))
       (values buffers samples channels))))
 
-(defun decode-frame-ptrs (file buffers)
+(defun decode-frame-ptrs (file)
   (cffi:with-foreign-objects ((channels :int)
                               (output :pointer))
     (let ((samples (vorbis:get-frame-float (handle file) channels output))
@@ -151,7 +151,7 @@
 
 (defun decode (file buffers &key (start 0) end)
   (let* ((count (channels file))
-         (pointers (make-array count) :element-type 'cffi:foreign-pointer)
+         (pointers (make-array count :element-type 'cffi:foreign-pointer :initial-element (cffi:null-pointer)))
          (end (or end (1- (length (first buffers))))))
     (declare (dynamic-extent pointers))
     (labels ((pin (func i)
