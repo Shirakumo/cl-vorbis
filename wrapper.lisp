@@ -42,19 +42,19 @@
 
 (defstruct (file
             (:conc-name NIL)
-            (:constructor %make-file (handle channels sample-rate max-frame-size))
+            (:constructor %make-file (handle channels samplerate max-frame-size))
             (:copier NIL)
             (:predicate NIL))
   (handle NIL :type cffi:foreign-pointer)
   (channels 0 :type (unsigned-byte 8) :read-only T)
-  (sample-rate 0 :type (unsigned-byte 32) :read-only T)
+  (samplerate 0 :type (unsigned-byte 32) :read-only T)
   (max-frame-size 0 :type (unsigned-byte 32) :read-only T))
 
 (defun make-file (handle error)
   (check-error (cffi:mem-ref error 'vorbis:error))
   (cffi:with-foreign-objects ((info '(:struct vorbis:info)))
     (vorbis:get-info handle info)
-    (%make-file handle (vorbis:info-channels info) (vorbis:info-sample-rate info) (vorbis:info-max-frame-size info))))
+    (%make-file handle (vorbis:info-channels info) (vorbis:info-samplerate info) (vorbis:info-max-frame-size info))))
 
 (defun close (file)
   (vorbis:close (handle file))
@@ -73,15 +73,15 @@
 
 (defun open-file (path &key buffer)
   (cffi:with-foreign-objects ((error 'vorbis:error))
-    (make-file (vorbis:open-filename (namestring path) error buffer) error)))
+    (make-file (vorbis:open-filename (namestring path) error (or buffer (cffi:null-pointer))) error)))
 
 (defun open-pointer (memory length &key buffer)
   (cffi:with-foreign-objects ((error 'vorbis:error))
-    (make-file (vorbis:open-memory memory length error buffer) error)))
+    (make-file (vorbis:open-memory memory length error (or buffer (cffi:null-pointer))) error)))
 
 (defun open-vector (vector &key buffer (start 0) (end (length vector)))
   (cffi:with-foreign-objects ((error 'vorbis:error))
-    (make-file (vorbis:open-memory (static-vectors:static-vector-pointer vector :offset start) (- end start) error buffer) error)))
+    (make-file (vorbis:open-memory (static-vectors:static-vector-pointer vector :offset start) (- end start) error (or buffer (cffi:null-pointer))) error)))
 
 (defmacro with-file ((file input &rest args) &body body)
   (let ((fileg (gensym "FILE")))

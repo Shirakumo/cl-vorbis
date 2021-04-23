@@ -46,7 +46,7 @@
   (length :int))
 
 (cffi:defcstruct (info :class info :conc-name info-)
-  (sample-rate :unsigned-int)
+  (samplerate :unsigned-int)
   (channels :int)
   (setup-memory-required :unsigned-int)
   (setup-temp-memory-required :unsigned-int)
@@ -99,14 +99,14 @@
 (cffi:defcfun (decode-filename "stb_vorbis_decode_filename") :int
   (filename :string)
   (channels :pointer)
-  (sample-rate :pointer)
+  (samplerate :pointer)
   (output :pointer))
 
 (cffi:defcfun (decode-memory "stb_vorbis_decode_memory") :int
   (mem :pointer)
   (length :int)
   (channels :pointer)
-  (sample-rate :pointer)
+  (samplerate :pointer)
   (output :pointer))
 
 (cffi:defcfun (open-memory "stb_vorbis_open_memory") :pointer

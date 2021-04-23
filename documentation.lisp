@@ -31,7 +31,7 @@ Automatically called by OPEN.")
 See OPEN
 See HANDLE
 See CHANNELS
-See SAMPLE-RATE
+See SAMPLERATE
 See MAX-FRAME-SIZE
 See CLOSE
 See FILE-OFFSET
@@ -57,7 +57,7 @@ See FILE")
 
 See FILE")
   
-  (function sample-rate
+  (function samplerate
     "Returns the sample rate of the audio data in the file.
 
 See FILE")

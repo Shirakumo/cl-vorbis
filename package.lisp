@@ -14,7 +14,7 @@
    #:buffer-data
    #:buffer-length
    #:info
-   #:info-sample-rate
+   #:info-samplerate
    #:info-channels
    #:info-setup-memory-required
    #:info-setup-temp-memory-required
@@ -65,7 +65,7 @@
    #:file
    #:handle
    #:channels
-   #:sample-rate
+   #:samplerate
    #:max-frame-size
    #:close
    #:open
