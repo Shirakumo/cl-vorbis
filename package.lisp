@@ -58,6 +58,9 @@
    (#:vorbis #:org.shirakumo.vorbis.cffi))
   (:shadow #:open #:close)
   (:export
+   #:need-more-data
+   #:vorbis-error
+   #:code
    #:init
    #:file
    #:handle

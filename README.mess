@@ -15,6 +15,9 @@ There's functions to decode a full frame (``decode-frame``), return the pointers
 
 If need-be, you can also access the underlying C functions directly through the ``org.shirakumo.vorbis.cffi`` package and the ``handle`` function.
 
+## Pinnable Vectors
+Where mentioned, a "pinnable vector" must be either a vector allocated through ``static-vectors``, or on SBCL a vector of type ``sb-kernel:simple-unboxed-array``.
+
 ## Included Sources
 - "stb_vorbis.c"(https://github.com/nothings/stb/blob/master/stb_vorbis.c)
 - "glibc-2.13.h"(https://github.com/wheybags/glibc_version_header/blob/master/version_headers/x64/force_link_glibc_2.13.h)

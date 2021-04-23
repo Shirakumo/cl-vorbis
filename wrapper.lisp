@@ -6,6 +6,14 @@
 
 (in-package #:org.shirakumo.vorbis)
 
+(define-condition need-more-data (warning)
+  ())
+
+(define-condition vorbis-error (error)
+  ((code :initarg :code :reader code))
+  (:report (lambda (c s) (format s "The vorbis operation failed with the following error:~%  ~a"
+                                 (code s)))))
+
 (defun init ()
   (cffi:load-foreign-library 'vorbis:libvorbis))
 
@@ -23,7 +31,7 @@
                (T
                 (,thunk (static-vectors:static-vector-pointer ,datag :offset (* ,offset 4)))))))))
 
-(defun check-error (error)
+(defun check-error (&optional (error (vorbis:get-error)))
   (case error
     (:no-error
      NIL)
@@ -139,8 +147,7 @@
     (let ((samples (vorbis:get-frame-float (handle file) channels output))
           (channels (cffi:mem-ref channels :int))
           (output (cffi:mem-ref output :pointer)))
-      (loop for i from 0 below channels
-            collect (cffi:mem-aref output :pointer i)))))
+      (values output samples channels))))
 
 (defun decode (file buffers &key (start 0) end)
   (let* ((count (channels file))
