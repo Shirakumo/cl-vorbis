@@ -1,4 +1,19 @@
+## About
+This is a small library wrapping stb_vorbis to provide a fast, libre, and easy-to-ship OGG/Vorbis decoder.
 
+## How To
+For this tutorial we assume that ``org.shirakumo.vorbis`` has a local nickname of ``vorbis``.
+
+:: common lisp
+(vorbis:with-file (file "test.ogg")
+  (values (vorbis:channels file)
+          (vorbis:sample-rate file)
+          (vorbis:decode-frame file)))
+::
+
+There's functions to decode a full frame (``decode-frame``), return the pointers to a decoded frame (``decode-frame-ptrs``), decode samples to a list of buffers (``decode``), and decode to an interleaved buffer (``decode-interleaved``).
+
+If need-be, you can also access the underlying C functions directly through the ``org.shirakumo.vorbis.cffi`` package and the ``handle`` function.
 
 ## Included Sources
 - "stb_vorbis.c"(https://github.com/nothings/stb/blob/master/stb_vorbis.c)

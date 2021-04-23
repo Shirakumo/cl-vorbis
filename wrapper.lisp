@@ -118,17 +118,20 @@
 (defun duration (file)
   (vorbis:stream-length-in-seconds (handle file)))
 
-(defun decode-frame (file buffers)
+(defun decode-frame (file &optional buffers)
   (cffi:with-foreign-objects ((channels :int)
                               (output :pointer))
-    (let ((samples (vorbis:get-frame-float (handle file) channels output))
-          (channels (cffi:mem-ref channels :int))
-          (output (cffi:mem-ref output :pointer)))
+    (let* ((samples (vorbis:get-frame-float (handle file) channels output))
+           (channels (cffi:mem-ref channels :int))
+           (output (cffi:mem-ref output :pointer))
+           (buffers (or buffers (loop for i from 0 below channels
+                                      collect (make-array samples :element-type 'single-float)))))
       (loop for i from 0 below channels
             for buffer = (pop buffers)
             for pointer = (cffi:mem-aref output :pointer i)
             do (dotimes (i samples)
-                 (setf (aref buffer i) (cffi:mem-aref pointer :float i)))))))
+                 (setf (aref buffer i) (cffi:mem-aref pointer :float i))))
+      (values buffers samples channels))))
 
 (defun decode-frame-ptrs (file buffers)
   (cffi:with-foreign-objects ((channels :int)
