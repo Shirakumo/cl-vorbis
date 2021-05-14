@@ -170,9 +170,8 @@
                    (funcall func)))
              (inner ()
                (cffi:with-foreign-object (arrays :pointer count)
-                 (loop for i from 0
-                       for pointer in pointers
-                       do (setf (cffi:mem-aref arrays :pointer i) pointer))
+                 (loop for i from 0 below count
+                       do (setf (cffi:mem-aref arrays :pointer i) (aref pointers i)))
                  (prog1 (vorbis:get-samples-float (handle file) count arrays (- end start))
                    (check-file-for-error file)))))
       (pin #'inner 0))))
