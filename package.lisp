@@ -61,6 +61,7 @@
    #:need-more-data
    #:vorbis-error
    #:code
+   #:file
    #:init
    #:file
    #:handle

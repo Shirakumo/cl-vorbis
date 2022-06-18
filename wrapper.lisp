@@ -10,7 +10,8 @@
   ())
 
 (define-condition vorbis-error (error)
-  ((code :initarg :code :reader code))
+  ((file :initarg :file :reader file)
+   (code :initarg :code :reader code))
   (:report (lambda (c s) (format s "The vorbis operation failed with the following error:~%  ~a"
                                  (code c)))))
 
@@ -31,14 +32,14 @@
                (T
                 (,thunk (static-vectors:static-vector-pointer ,datag :offset (* ,offset 4)))))))))
 
-(defun check-error (error)
+(defun check-error (file error)
   (case error
     (:no-error
      NIL)
     (:need-more-data
      (warn 'need-more-data))
     (T
-     (error 'vorbis-error :code error))))
+     (error 'vorbis-error :file file :code error))))
 
 (defstruct (file
             (:conc-name NIL)
@@ -51,13 +52,13 @@
   (max-frame-size 0 :type (unsigned-byte 32) :read-only T))
 
 (defun make-file (handle error)
-  (check-error (cffi:mem-ref error 'vorbis:error))
+  (check-error NIL (cffi:mem-ref error 'vorbis:error))
   (cffi:with-foreign-objects ((info '(:struct vorbis:info)))
     (vorbis:get-info handle info)
     (%make-file handle (vorbis:info-channels info) (vorbis:info-samplerate info) (vorbis:info-max-frame-size info))))
 
 (defun check-file-for-error (file)
-  (check-error (vorbis:get-error (handle file))))
+  (check-error file (vorbis:get-error (handle file))))
 
 (defun close (file)
   (vorbis:close (handle file))
