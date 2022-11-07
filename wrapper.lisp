@@ -6,8 +6,35 @@
 
 (in-package #:org.shirakumo.fraf.vorbis)
 
-(define-condition need-more-data (warning)
-  ())
+(cffi:defcallback read-mem-func :size ((buffer :pointer) (element-size :size) (elements :size) (data-source :pointer))
+  (let* ((chars (* element-size elements))
+         (index (vorbis:data-source-index data-source))
+         (size (vorbis:data-source-size data-source))
+         (copyable (min chars (- size index))))
+    (static-vectors:replace-foreign-memory buffer (cffi:inc-pointer (vorbis:data-source-buffer data-source) index) copyable)
+    (setf (vorbis:data-source-index data-source) (+ index copyable))
+    copyable))
+
+(cffi:defcallback seek-mem-func :int ((data-source :pointer) (offset :int64) (whence :int))
+  (let ((new (ecase whence
+               (1 offset)
+               (2 (+ offset (vorbis:data-source-index data-source)))
+               (3 (+ offset (vorbis:data-source-size data-source))))))
+    (cond ((<= new (vorbis:data-source-size data-source))
+           (setf (vorbis:data-source-index data-source) new)
+           0)
+          (T
+           1))))
+
+(cffi:defcallback close-mem-func :int ((data-source :pointer))
+  (when (vorbis:data-source-owner data-source)
+    (cffi:foreign-free (vorbis:data-source-buffer data-source))
+    (setf (vorbis:data-source-buffer data-source) (cffi:null-pointer))
+    (setf (vorbis:data-source-owner data-source) NIL))
+  0)
+
+(cffi:defcallback tell-mem-func :long ((data-source :pointer))
+  (vorbis:data-source-index data-source))
 
 (define-condition vorbis-error (error)
   ((file :initarg :file :reader file)
@@ -33,39 +60,31 @@
                 (,thunk (static-vectors:static-vector-pointer ,datag :offset (* ,offset 4)))))))))
 
 (defun check-error (file error)
-  (case error
-    (:no-error
-     NIL)
-    (:need-more-data
-     (warn 'need-more-data))
-    (T
-     (error 'vorbis-error :file file :code error))))
+  (if (< error 0)
+      (error 'vorbis-error :file file :code error)
+      error))
 
 (defstruct (file
             (:conc-name NIL)
-            (:constructor %make-file (handle channels samplerate max-frame-size))
+            (:constructor %make-file (handle channels samplerate))
             (:copier NIL)
             (:predicate NIL))
   (handle NIL :type cffi:foreign-pointer)
   (channels 0 :type (unsigned-byte 8) :read-only T)
   (samplerate 0 :type (unsigned-byte 32) :read-only T)
-  (max-frame-size 0 :type (unsigned-byte 32) :read-only T))
+  (bitstream 0 :type (unsigned-byte 32)))
 
 (defun make-file (handle error)
-  (check-error NIL (cffi:mem-ref error 'vorbis:error))
-  (cffi:with-foreign-objects ((info '(:struct vorbis:info)))
-    (vorbis:get-info handle info)
-    (%make-file handle (vorbis:info-channels info) (vorbis:info-samplerate info) (vorbis:info-max-frame-size info))))
-
-(defun check-file-for-error (file)
-  (check-error file (vorbis:get-error (handle file))))
+  (check-error NIL error)
+  (let ((info (vorbis:info handle -1)))
+    (%make-file handle (vorbis:info-channels info) (vorbis:info-samplerate info))))
 
 (defun close (file)
   (vorbis:close (handle file))
   (setf (handle file) (cffi:null-pointer)))
 
-(defun open (thing &rest initargs &key buffer start end)
-  (declare (ignore buffer start end))
+(defun open (thing &rest initargs &key start end)
+  (declare (ignore start end))
   (init)
   (etypecase thing
     ((or string pathname)
@@ -75,20 +94,37 @@
     ((simple-array (unsigned-byte 8) (*))
      (apply #'open-vector thing initargs))))
 
-(defun open-file (path &key buffer)
-  (cffi:with-foreign-objects ((error 'vorbis:error))
-    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
-    (make-file (vorbis:open-filename (namestring (truename path)) error (or buffer (cffi:null-pointer))) error)))
+(defun open-file (path)
+  (let ((file (cffi:foreign-alloc '(:struct vorbis:file))))
+    (make-file file (vorbis:fopen (namestring (truename path)) file))))
 
-(defun open-pointer (memory length &key buffer)
-  (cffi:with-foreign-objects ((error 'vorbis:error))
-    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
-    (make-file (vorbis:open-memory memory length error (or buffer (cffi:null-pointer))) error)))
+(defun open-pointer (memory length &key free-on-close)
+  (let ((file (cffi:foreign-alloc '(:struct vorbis:file)))
+        (data-source (cffi:foreign-alloc '(:struct vorbis:data-source)))
+        (callbacks (cffi:foreign-alloc '(:struct vorbis:callbacks))))
+    (setf (vorbis:callbacks-read callbacks) (cffi:callback read-mem-func))
+    (setf (vorbis:callbacks-seek callbacks) (cffi:callback seek-mem-func))
+    (setf (vorbis:callbacks-close callbacks) (cffi:callback close-mem-func))
+    (setf (vorbis:callbacks-tell callbacks) (cffi:callback tell-mem-func))
+    (setf (vorbis:data-source-buffer data-source) memory)
+    (setf (vorbis:data-source-size data-source) length)
+    (setf (vorbis:data-source-index data-source) 0)
+    (setf (vorbis:data-source-owner data-source) free-on-close)
+    (make-file file (vorbis:open-callbacks data-source file (cffi:null-pointer) 0 callbacks))))
 
-(defun open-vector (vector &key buffer (start 0) (end (length vector)))
-  (cffi:with-foreign-objects ((error 'vorbis:error))
-    (setf (cffi:mem-ref error 'vorbis:error) :no-error)
-    (make-file (vorbis:open-memory (static-vectors:static-vector-pointer vector :offset start) (- end start) error (or buffer (cffi:null-pointer))) error)))
+(defun open-vector (vector &key (start 0) (end (length vector)))
+  (let ((file (cffi:foreign-alloc '(:struct vorbis:file)))
+        (data-source (cffi:foreign-alloc '(:struct vorbis:data-source)))
+        (callbacks (cffi:foreign-alloc '(:struct vorbis:callbacks))))
+    (setf (vorbis:callbacks-read callbacks) (cffi:callback read-mem-func))
+    (setf (vorbis:callbacks-seek callbacks) (cffi:callback seek-mem-func))
+    (setf (vorbis:callbacks-close callbacks) (cffi:callback close-mem-func))
+    (setf (vorbis:callbacks-tell callbacks) (cffi:callback tell-mem-func))
+    (setf (vorbis:data-source-buffer data-source) (cffi:inc-pointer (static-vectors:static-vector-pointer vector) start))
+    (setf (vorbis:data-source-size data-source) (- end start))
+    (setf (vorbis:data-source-index data-source) 0)
+    (setf (vorbis:data-source-owner data-source) 0)
+    (make-file file (vorbis:open-callbacks data-source file (cffi:null-pointer) 0 callbacks))))
 
 (defmacro with-file ((file input &rest args) &body body)
   (let ((fileg (gensym "FILE")))
@@ -101,62 +137,36 @@
 ;; TODO: streaming api
 
 (defun file-offset (file)
-  (vorbis:get-file-offset (handle file)))
+  (vorbis:raw-tell (handle file)))
 
 (defun sample-index (file)
-  (vorbis:get-sample-offset (handle file)))
+  (vorbis:pcm-tell (handle file)))
 
 (defun (setf sample-index) (index file)
-  (vorbis:seek (handle file) index)
+  (vorbis:pcm-seek (handle file) index)
   index)
 
 (defun comments (file)
-  (cffi:with-foreign-objects ((comment '(:struct vorbis:comment)))
-    (vorbis:get-comment (handle file) comment)
-    (loop for i from 0 below (vorbis:comment-list-length comment)
-          collect (cffi:mem-aref (vorbis:comment-list comment) :string i))))
+  (let ((comment (vorbis:comment (handle file) -1)))
+    (loop for i from 0 below (vorbis:comment-comments comment)
+          for ptr = (cffi:mem-aref (vorbis:comment-user-comments comment) :pointer i)
+          for len = (cffi:mem-aref (vorbis:comment-user-comments comment) :int i)
+          collect (cffi:foreign-string-to-lisp ptr :count len :encoding :utf-8))))
 
 (defun vendor (file)
-  (cffi:with-foreign-objects ((comment '(:struct vorbis:comment)))
-    (vorbis:get-comment (handle file) comment)
-    (vorbis:comment-vendor comment)))
+  (vorbis:comment-vendor (vorbis:comment (handle file) -1)))
 
 (defun seek (file sample)
-  (vorbis:seek (handle file) sample))
+  (vorbis:pcm-seek (handle file) sample))
 
 (defun seek-frame (file sample)
-  (vorbis:seek-frame (handle file) sample))
+  (vorbis:pcm-seek-page (handle file) sample))
 
 (defun sample-count (file)
-  (vorbis:stream-length-in-samples (handle file)))
+  (vorbis:pcm-total (handle file) -1))
 
 (defun duration (file)
-  (vorbis:stream-length-in-seconds (handle file)))
-
-(defun decode-frame (file &optional buffers)
-  (cffi:with-foreign-objects ((channels :int)
-                              (output :pointer))
-    (let* ((samples (prog1 (vorbis:get-frame-float (handle file) channels output)
-                      (check-file-for-error file)))
-           (channels (cffi:mem-ref channels :int))
-           (output (cffi:mem-ref output :pointer))
-           (buffers (or buffers (loop for i from 0 below channels
-                                      collect (make-array samples :element-type 'single-float)))))
-      (loop for i from 0 below channels
-            for buffer in buffers
-            for pointer = (cffi:mem-aref output :pointer i)
-            do (dotimes (i samples)
-                 (setf (aref buffer i) (cffi:mem-aref pointer :float i))))
-      (values buffers samples channels))))
-
-(defun decode-frame-ptrs (file)
-  (cffi:with-foreign-objects ((channels :int)
-                              (output :pointer))
-    (let ((samples (prog1 (vorbis:get-frame-float (handle file) channels output)
-                     (check-file-for-error file)))
-          (channels (cffi:mem-ref channels :int))
-          (output (cffi:mem-ref output :pointer)))
-      (values output samples channels))))
+  (vorbis:time-total (handle file) -1))
 
 (defun decode (file buffers &key (start 0) end)
   (let* ((count (channels file))
@@ -173,11 +183,15 @@
                (cffi:with-foreign-object (arrays :pointer count)
                  (loop for i from 0 below count
                        do (setf (cffi:mem-aref arrays :pointer i) (aref pointers i)))
-                 (prog1 (vorbis:get-samples-float (handle file) count arrays (- end start))
-                   (check-file-for-error file)))))
+                 (cffi:with-foreign-object (bitstream :int)
+                   (setf (cffi:mem-ref bitstream :int) (bitstream file))
+                   (prog1 (check-error file (vorbis:read-float (handle file) arrays (- end start) bitstream))
+                     (setf (bitstream file) (cffi:mem-ref bitstream :int)))))))
       (pin #'inner 0))))
 
 (defun decode-interleaved (file buffer &key (start 0) end)
   (with-pinned-buffer (pointer buffer :offset start)
-    (prog1 (vorbis:get-samples-float-interleaved (handle file) (channels file) pointer (- end start))
-      (check-file-for-error file))))
+    (cffi:with-foreign-object (bitstream :int)
+      (setf (cffi:mem-ref bitstream :int) (bitstream file))
+      (prog1 (check-error file (vorbis:read (handle file) pointer (- end start) 0 2 1 bitstream))
+        (setf (bitstream file) (cffi:mem-ref bitstream :int))))))

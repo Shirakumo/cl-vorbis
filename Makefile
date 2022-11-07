@@ -40,4 +40,4 @@ else
 endif
 
 all:
-	$(CC) -shared -o static/$(OUT).$(SUFFIX) $(CFLAGS) stb_vorbis_patch.c $(LDFLAGS)
+	$(CC) -shared -o static/$(OUT).$(SUFFIX) $(CFLAGS) minivorbis_patch.c $(LDFLAGS)

@@ -18,175 +18,314 @@
   (:windows (:or #+X86 "libvorbis-win-i686.dll"
                  #+X86-64 "libvorbis-win-amd64.dll")))
 
-(cffi:defcenum (error :int)
+(cffi:defcenum error
+  (:false -1)
+  (:end-of-file -2)
+  (:hole -3)
+  (:read-error -128)
+  (:internal-fault -129)
+  (:implementation-error -130)
+  (:invalid -131)
+  (:not-vorbis -132)
+  (:bad-header -133)
+  (:version -134)
+  (:not-audio -135)
+  (:bad-packet -136)
+  (:bad-link -137)
+  (:not-seekable -138)
   (:no-error 0)
-  (:need-more-data 1)
-  (:invalid-api-mixing)
-  (:out-of-memory)
-  (:feature-not-supported)
-  (:too-many-channels)
-  (:file-open-failure)
-  (:seek-without-length)
-  (:unexpected-end-of-file 10)
-  (:seek-invalid)
-  (:invalid-setup 20)
-  (:invalid-stream)
-  (:missing-capture-pattern 30)
-  (:invalid-stream-structure-version)
-  (:continued-packet-flag-invalid)
-  (:incorrect-stream-serial-number)
-  (:invalid-first-page)
-  (:bad-packet-type)
-  (:cant-find-last-page)
-  (:seek-failed)
-  (:ogg-skeleton-not-supported))
+  (:part-open 1)
+  (:opened 2)
+  (:stream-set 3)
+  (:init-set 4))
 
-(cffi:defcstruct (buffer :class buffer :conc-name buffer-)
+(cffi:defcstruct (data-source :class data-source :conc-name data-source-)
+  (buffer :pointer)
+  (size :size)
+  (index :size)
+  (owner :boolean))
+
+(cffi:defcstruct (callbacks :class callbacks :conc-name callbacks-)
+  (read :pointer)
+  (seek :pointer)
+  (close :pointer)
+  (tell :pointer))
+
+(cffi:defcstruct (sync-state :class sync-state :conc-name sync-state-)
   (data :pointer)
-  (length :int))
+  (storage :int)
+  (fill :int)
+  (returned :int)
+  (unsynced :int)
+  (header-bytes :int)
+  (body-bytes :int))
+
+(cffi:defcstruct (stream-state :class stream-state :conc-name stream-state-)
+  (data :pointer)
+  (body-storage :long)
+  (body-fill :long)
+  (body-returned :long)
+  (lacing-values (:pointer :int))
+  (granule-values (:pointer :int64))
+  (lacing-storage :long)
+  (lacing-fill :long)
+  (lacing-packet :long)
+  (lacing-returned :long)
+  (header :unsigned-char :count 282)
+  (header-fill :int)
+  (e-o-s :int)
+  (b-o-s :int)
+  (serial-number :long)
+  (page-number :long)
+  (packet-number :int64)
+  (granule-position :int64))
+
+(cffi:defcstruct (dsp-state :class dsp-state :conc-name dsp-state-)
+  (analysis-p :int)
+  (info :pointer)
+  (pcm (:pointer (:pointer :float)))
+  (pcm-ret (:pointer (:pointer :float)))
+  (pcm-storage :int)
+  (pcm-current :int)
+  (pcm-returned :int)
+  (pre-extrapolate :int)
+  (eof-flag :int)
+  (lw :long)
+  (w :long)
+  (nw :long)
+  (centerw :long)
+  (granule-position :int64)
+  (sequence :int64)
+  (glue-bits :int64)
+  (time-bits :int64)
+  (floor-bits :int64)
+  (res-bits :int64)
+  (backend-state :pointer))
 
 (cffi:defcstruct (info :class info :conc-name info-)
-  (samplerate :unsigned-int)
+  (version :int)
   (channels :int)
-  (setup-memory-required :unsigned-int)
-  (setup-temp-memory-required :unsigned-int)
-  (temp-memory-required :unsigned-int)
-  (max-frame-size :int))
+  (samplerate :long)
+  (bitrate-upper :long)
+  (bitrate-nominal :long)
+  (bitrate-lower :long)
+  (bitrate-window :long)
+  (codec-setup :pointer))
+
+(cffi:defcstruct (oggpack-buffer :class oggpack-buffer :conc-name oggpack-buffer)
+  (end-byte :long)
+  (end-bit :int)
+  (buffer :pointer)
+  (ptr :pointer)
+  (storage :long))
+
+(cffi:defcstruct (vorbis-block :class vorbis-block :conc-name vorbis-block-)
+  (pcm (:pointer (:pointer :float)))
+  (buffer (:struct oggpack-buffer))
+  (lw :long)
+  (w :long)
+  (nw :long)
+  (pcm-end :int)
+  (mode :int)
+  (eof-flag :int)
+  (granule-position :int64)
+  (sequence :int64)
+  (dsp-state :pointer)
+  (local-store :pointer)
+  (local-top :long)
+  (local-alloc :long)
+  (total-use :long)
+  (reap :pointer)
+  (glue-bits :long)
+  (time-bits :long)
+  (floor-bits :long)
+  (res-bits :long)
+  (internal :pointer))
 
 (cffi:defcstruct (comment :class comment :conc-name comment-)
-  (vendor :string)
-  (list-length :int)
-  (list :pointer))
+  (user-comments (:pointer :string))
+  (comment-lengths (:pointer :int))
+  (comments :int)
+  (vendor :string))
 
-(cffi:defcfun (get-info "stb_vorbis_get_info_") :void
-  (vorbis :pointer)
-  (info :pointer))
+(cffi:defcstruct (file :class file :conc-name file-)
+  (data-source :pointer)
+  (seekable :int)
+  (offset :int64)
+  (end :int64)
+  (sync-state (:struct sync-state))
+  (links :int)
+  (offsets (:pointer :int64))
+  (data-offsets (:pointer :int64))
+  (serial-numbers (:pointer :long))
+  (pcm-lengths (:pointer :int64))
+  (info :pointer)
+  (vorbis-comment :pointer)
+  (pcm-offset :int64)
+  (ready-state :int)
+  (current-serial-number :long)
+  (current-link :int)
+  (bit-track :double)
+  (samp-track :double)
+  (stream-state (:struct stream-state))
+  (dsp-state (:struct dsp-state))
+  (vorbis-block (:struct vorbis-block))
+  (callbacks (:struct callbacks)))
 
-(cffi:defcfun (get-comment "stb_vorbis_get_comment_") :void
-  (vorbis :pointer)
-  (comment :pointer))
+(cffi:defcfun (close "ov_clear") :int
+  (file :pointer))
 
-(cffi:defcfun (get-error "stb_vorbis_get_error") error
-  (vorbis :pointer))
+(cffi:defcfun (fopen "ov_fopen") :int
+  (path :string)
+  (file :pointer))
 
-(cffi:defcfun (close "stb_vorbis_close") :void
-  (vorbis :pointer))
-
-(cffi:defcfun (get-sample-offset "stb_vorbis_get_sample_offset") :int
-  (vorbis :pointer))
-
-(cffi:defcfun (get-file-offset "stb_vorbis_get_file_offset") :unsigned-int
-  (vorbis :pointer))
-
-(cffi:defcfun (open-pushdata "stb_vorbis_open_pushdata") :pointer
-  (datablock :pointer)
-  (length :int)
-  (consumed :pointer)
-  (error :pointer)
-  (buffer :pointer))
-
-(cffi:defcfun (decode-frame-pushdata "stb_vorbis_decode_frame_pushdata") :int
-  (vorbis :pointer)
-  (datablock :pointer)
-  (length :int)
-  (channels :pointer)
-  (output :pointer)
-  (samples :pointer))
-
-(cffi:defcfun (flush-pushdata "stb_vorbis_flush_pushdata") :void
-  (vorbis :pointer))
-
-(cffi:defcfun (decode-filename "stb_vorbis_decode_filename") :int
-  (filename :string)
-  (channels :pointer)
-  (samplerate :pointer)
-  (output :pointer))
-
-(cffi:defcfun (decode-memory "stb_vorbis_decode_memory") :int
-  (mem :pointer)
-  (length :int)
-  (channels :pointer)
-  (samplerate :pointer)
-  (output :pointer))
-
-(cffi:defcfun (open-memory "stb_vorbis_open_memory") :pointer
-  (data :pointer)
-  (length :int)
-  (error :pointer)
-  (buffer :pointer))
-
-(cffi:defcfun (open-filename "stb_vorbis_open_filename") :pointer
-  (filename :string)
-  (error :pointer)
-  (buffer :pointer))
-
-(cffi:defcfun (open-file "stb_vorbis_open_file") :pointer
+(cffi:defcfun (open "ov_open") :int
+  (handle :pointer)
   (file :pointer)
-  (close-handle-on-close :int)
-  (error :pointer)
-  (buffer :pointer))
+  (initial :pointer)
+  (bytes :long))
 
-(cffi:defcfun (open-file-section "stb_vorbis_open_file_section") :pointer
+(cffi:defcfun (open-callbacks "ov_open_callbacks_") :int
+  (datasource :pointer)
   (file :pointer)
-  (close-handle-on-close :int)
-  (error :pointer)
+  (initial :pointer)
+  (bytes :long)
+  (callbacks :pointer))
+
+(cffi:defcfun (test "ov_test") :int
+  (handle :pointer)
+  (file :pointer)
+  (initial :pointer)
+  (bytes :long))
+
+(cffi:defcfun (test-callbacks "ov_test_callbacks_") :int
+  (datasource :pointer)
+  (file :pointer)
+  (initial :pointer)
+  (bytes :long)
+  (callbacks :pointer))
+
+(cffi:defcfun (test-open "ov_test_open") :int
+  (file :pointer))
+
+(cffi:defcfun (bitrate "ov_bitrate") :long
+  (file :pointer)
+  (i :int))
+
+(cffi:defcfun (bitrate-instant "ov_bitrate_instant") :long
+  (file :pointer))
+
+(cffi:defcfun (streams "ov_streams") :long
+  (file :pointer))
+
+(cffi:defcfun (seekable "ov_seekable") :long
+  (file :pointer))
+
+(cffi:defcfun (serial-number "ov_serialnumber") :long
+  (file :pointer)
+  (i :int))
+
+(cffi:defcfun (raw-total "ov_raw_total") :int64
+  (file :pointer)
+  (i :int))
+
+(cffi:defcfun (pcm-total "ov_pcm_total") :int64
+  (file :pointer)
+  (i :int))
+
+(cffi:defcfun (time-total "ov_time_total") :double
+  (file :pointer)
+  (i :int))
+
+(cffi:defcfun (raw-seek "ov_raw_seek") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (pcm-seek "ov_pcm_seek") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (pcm-seek-page "ov_pcm_seek_page") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (time-seek "ov_time_seek") :int
+  (file :pointer)
+  (pos :double))
+
+(cffi:defcfun (time-seek-page "ov_time_seek_page") :int
+  (file :pointer)
+  (pos :double))
+
+(cffi:defcfun (raw-seek-lap "ov_raw_seek_lap") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (pcm-seek-lap "ov_pcm_seek_lap") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (pcm-seek-page-lap "ov_pcm_seek_page_lap") :int
+  (file :pointer)
+  (pos :int64))
+
+(cffi:defcfun (time-seek-lap "ov_time_seek_lap") :int
+  (file :pointer)
+  (pos :double))
+
+(cffi:defcfun (time-seek-page-lap "ov_time_seek_page_lap") :int
+  (file :pointer)
+  (pos :double))
+
+(cffi:defcfun (raw-tell "ov_raw_tell") :int64
+  (file :pointer))
+
+(cffi:defcfun (pcm-tell "ov_pcm_tell") :int64
+  (file :pointer))
+
+(cffi:defcfun (time-tell "ov_time_tell") :double
+  (file :pointer))
+
+(cffi:defcfun (info "ov_info") :pointer
+  (file :pointer)
+  (link :int))
+
+(cffi:defcfun (comment "ov_comment") :pointer
+  (file :pointer)
+  (link :int))
+
+(cffi:defcfun (read-float "ov_read_float") :long
+  (file :pointer)
+  (channels (:pointer (:pointer :float)))
+  (samples :int)
+  (bitstream (:pointer :int)))
+
+(cffi:defcfun (read-filter "ov_read_filter") :long
+  (file :pointer)
   (buffer :pointer)
-  (length :unsigned-int))
+  (length :int)
+  (bigendian-p :boolean)
+  (word-size :int)
+  (signed-p :boolean)
+  (bistream (:pointer :int))
+  (filter :pointer))
 
-(cffi:defcfun (seek-frame "stb_vorbis_seek_frame") :int
-  (vorbis :pointer)
-  (sample :unsigned-int))
-
-(cffi:defcfun (seek "stb_vorbis_seek") :int
-  (vorbis :pointer)
-  (sample :unsigned-int))
-
-(cffi:defcfun (seek-start "stb_vorbis_seek_start") :int
-  (vorbis :pointer))
-
-(cffi:defcfun (stream-length-in-samples "stb_vorbis_stream_length_in_samples") :unsigned-int
-  (vorbis :pointer))
-
-(cffi:defcfun (stream-length-in-seconds "stb_vorbis_stream_length_in_seconds") :float
-  (vorbis :pointer))
-
-(cffi:defcfun (get-frame-float "stb_vorbis_get_frame_float") :int
-  (vorbis :pointer)
-  (channels :pointer)
-  (output :pointer))
-
-(cffi:defcfun (get-frame-short-interleaved "stb_vorbis_get_frame_short_interleaved") :int
-  (vorbis :pointer)
-  (channel :int)
+(cffi:defcfun (read "ov_read") :long
+  (file :pointer)
   (buffer :pointer)
-  (length :int))
+  (length :int)
+  (bigendian-p :boolean)
+  (word-size :int)
+  (signed-p :boolean)
+  (bitsream :pointer))
 
-(cffi:defcfun (get-frame-short "stb_vorbis_get_frame_short") :int
-  (vorbis :pointer)
-  (channel :int)
-  (buffers :pointer)
-  (length :int))
+(cffi:defcfun (crosslap "ov_crosslap") :int
+  (a :pointer)
+  (b :pointer))
 
-(cffi:defcfun (get-samples-float-interleaved "stb_vorbis_get_samples_float_interleaved") :int
-  (vorbis :pointer)
-  (channels :int)
-  (buffer :pointer)
-  (length :int))
+(cffi:defcfun (half-rate "ov_halfrate") :int
+  (file :pointer)
+  (flag :int))
 
-(cffi:defcfun (get-samples-float "stb_vorbis_get_samples_float") :int
-  (vorbis :pointer)
-  (channels :int)
-  (buffers :pointer)
-  (length :int))
-
-(cffi:defcfun (get-samples-short-interleaved "stb_vorbis_get_samples_short_interleaved") :int
-  (vorbis :pointer)
-  (channels :int)
-  (buffer :pointer)
-  (length :int))
-
-(cffi:defcfun (get-samples-short "stb_vorbis_get_samples_short") :int
-  (vorbis :pointer)
-  (channels :int)
-  (buffers :pointer)
-  (length :int))
+(cffi:defcfun (half-rate-p "ov_halfrate_p") :int
+  (file :pointer))

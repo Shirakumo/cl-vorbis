@@ -182,29 +182,6 @@ See FILE")
 
 See FILE")
   
-  (function decode-frame
-    "Decode a whole vorbis frame.
-
-Returns three values: a list of buffers (one per channel) containaing
-the frame data, the number of samples in the buffers, and the number
-of channels.
-
-If BUFFERS is passed it must be a list of pinnable vectors the length
-of the number of channels in the file.
-
-See FILE
-See DECODE-FRAME-PTRS")
-  
-  (function decode-frame-ptrs
-    "Decode a whole vorbis frame.
-
-Returns three values: a pointer to an array of pointers for the
-buffers containing the samples, the number of samples in each buffer,
-and the number of channels.
-
-See FILE
-See DECODE-FRAME")
-  
   (function decode
     "Decode a number of samples to per-channel buffers.
 
