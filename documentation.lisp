@@ -23,10 +23,17 @@ See VORBIS-ERROR")
   (function init
     "Load the foreign library.
 
-Automatically called by OPEN.")
+Automatically called by OPEN.
+
+See SHUTDOWN")
+
+  (function shutdown
+    "Unloads the foreign library.
+
+See INIT")
   
   (type file
-    "Representation of an OGG/Vorbis file.
+        "Representation of an OGG/Vorbis file.
 
 See OPEN
 See HANDLE

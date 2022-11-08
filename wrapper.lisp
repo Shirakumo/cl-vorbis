@@ -15,8 +15,16 @@
   (:report (lambda (c s) (format s "The vorbis operation failed with the following error:~%  ~a"
                                  (code c)))))
 
+(defvar *init* NIL)
 (defun init ()
-  (cffi:load-foreign-library 'vorbis:libvorbis))
+  (unless *init*
+    (cffi:load-foreign-library 'vorbis:libvorbis)
+    (setf *init* T)))
+
+(defun shutdown ()
+  (when *init*
+    (cffi:close-foreign-library 'vorbis:libvorbis)
+    (setf *init* NIL)))
 
 (defmacro with-pinned-buffer ((ptr data &key (offset 0)) &body body)
   (let ((datag (gensym "DATA")) (thunk (gensym "THUNK")))

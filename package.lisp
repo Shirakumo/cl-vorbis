@@ -63,6 +63,7 @@
    #:code
    #:file
    #:init
+   #:shutdown
    #:file
    #:handle
    #:channels
