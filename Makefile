@@ -1,7 +1,7 @@
 CC ?= gcc
 OUT := libvorbis
 SUFFIX := so
-CFLAGS := -O3 -ftree-vectorize -msse4 -mfpmath=sse -fPIC -g
+CFLAGS := -O3 -ftree-vectorize -msse -mfpmath=sse -fPIC -g
 LDFLAGS := -l m
 
 ifeq ($(OS),Windows_NT)
