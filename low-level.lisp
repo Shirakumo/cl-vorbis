@@ -12,7 +12,8 @@
 
 (cffi:define-foreign-library libvorbis
   (:darwin (:or #+X86 "libvorbis-mac-i686.dylib"
-                #+X86-64 "libvorbis-mac-amd64.dylib"))
+                #+X86-64 "libvorbis-mac-amd64.dylib"
+                #+ARM64 "libvorbis-mac-arm64.dylib"))
   (:unix (:or #+X86 "libvorbis-lin-i686.so"
               #+X86-64 "libvorbis-lin-amd64.so"))
   (:windows (:or #+X86 "libvorbis-win-i686.dll"
