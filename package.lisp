@@ -1,9 +1,3 @@
-#|
- This file is a part of cl-vorbis
- (c) 2021 Shirakumo http://tymoon.eu (shinmera@tymoon.eu)
- Author: Nicolas Hafner <shinmera@tymoon.eu>
-|#
-
 (defpackage #:org.shirakumo.fraf.vorbis.cffi
   (:use #:cl)
   (:shadow #:close #:error)
