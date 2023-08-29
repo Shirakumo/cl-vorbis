@@ -11,7 +11,8 @@
   (:unix (:or #+X86 "libvorbis-lin-i686.so"
               #+X86-64 "libvorbis-lin-amd64.so"))
   (:windows (:or #+X86 "libvorbis-win-i686.dll"
-                 #+X86-64 "libvorbis-win-amd64.dll")))
+                 #+X86-64 "libvorbis-win-amd64.dll"))
+  (:nx (:or "libvorbis.nro" "libvorbis")))
 
 (cffi:defcenum (error :int)
   (:no-error 0)
