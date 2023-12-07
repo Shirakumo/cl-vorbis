@@ -1,10 +1,13 @@
 CC ?= gcc
 OUT := libvorbis
 SUFFIX := so
-CFLAGS := -O3 -ftree-vectorize -msse -mfpmath=sse -fPIC -g
+CFLAGS := -O3 -ftree-vectorize -fPIC -g
+SSE_DEFAULT := -msse -mfpmath=sse
+SSE_MAC_SILICON := -march=native
 LDFLAGS := -l m
 
 ifeq ($(OS),Windows_NT)
+    CFLAGS := $(CFLAGS) $(SSE_DEFAULT)
     OUT := $(OUT)-win
     SUFFIX := dll
     ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
@@ -28,13 +31,16 @@ else
 	SUFFIX = dylib
     endif
     PROC_P := $(shell $(CC) -dumpmachine)
-    ifeq ($(filter, %x86_64,$(PROC)),)
+    ifneq ($(filter, %x86_64,$(PROC_P)),)
+	CFLAGS := $(CFLAGS) $(SSE_DEFAULT)
         OUT := $(OUT)-amd64
     endif
-    ifneq ($(filter %86,$(PROC)),)
+    ifneq ($(filter %86,$(PROC_P)),)
+	CFLAGS := $(CFLAGS) $(SSE_DEFAULT)
         OUT := $(OUT)-i686
     endif
-    ifneq ($(filter arm%,$(PROC)),)
+    ifneq ($(filter arm%,$(PROC_P)),)
+	CFLAGS := $(CFLAGS) $(SSE_MAC_SILICON)
         OUT := $(OUT)-arm
     endif
 endif
