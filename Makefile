@@ -3,7 +3,7 @@ OUT := libvorbis
 SUFFIX := so
 CFLAGS := -O3 -ftree-vectorize -fPIC -g
 SSE_DEFAULT := -msse -mfpmath=sse
-SSE_MAC_SILICON := -mavx2 -march=native
+SSE_MAC_SILICON := -march=native
 LDFLAGS := -l m
 
 ifeq ($(OS),Windows_NT)
