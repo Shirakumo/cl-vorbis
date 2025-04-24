@@ -9,9 +9,11 @@
                 #+X86-64 "libvorbis-mac-amd64.dylib"
                 #+ARM64 "libvorbis-mac-arm64.dylib"))
   (:unix (:or #+X86 "libvorbis-lin-i686.so"
-              #+X86-64 "libvorbis-lin-amd64.so"))
+              #+X86-64 "libvorbis-lin-amd64.so"
+              #+ARM64 "libvorbis-lin-arm64.so"))
   (:windows (:or #+X86 "libvorbis-win-i686.dll"
-                 #+X86-64 "libvorbis-win-amd64.dll"))
+                 #+X86-64 "libvorbis-win-amd64.dll"
+                 #+ARM64 "libvorbis-win-arm64.so"))
   (:nx (:or "libvorbis.nro" "libvorbis")))
 
 (cffi:defcenum (error :int)

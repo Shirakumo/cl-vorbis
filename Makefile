@@ -3,7 +3,7 @@ OUT := libvorbis
 SUFFIX := so
 CFLAGS := -O3 -ftree-vectorize -fPIC -g
 SSE_DEFAULT := -msse -mfpmath=sse
-SSE_MAC_SILICON := -march=native
+SSE_NATIVE := -march=native
 LDFLAGS := -l m
 
 ifeq ($(OS),Windows_NT)
@@ -22,26 +22,28 @@ ifeq ($(OS),Windows_NT)
     endif
 else
     UNAME_S := $(shell uname -s)
+	UNAME_M := $(shell uname -m)
     ifeq ($(UNAME_S),Linux)
         OUT := $(OUT)-lin
-	CFLAGS += -static-libgcc -include glibc-2.13.h
+		ifeq ($(UNAME_M),x86_64)
+			CFLAGS += -static-libgcc -include glibc-2.13.h
+		endif
     endif
     ifeq ($(UNAME_S),Darwin)
         OUT := $(OUT)-mac
-	SUFFIX = dylib
+		SUFFIX = dylib
     endif
-    PROC_P := $(shell $(CC) -dumpmachine)
-    ifneq ($(filter, %x86_64,$(PROC_P)),)
-	CFLAGS := $(CFLAGS) $(SSE_DEFAULT)
+    ifeq ($(UNAME_M),x86_64)
+		CFLAGS += $(SSE_DEFAULT)
         OUT := $(OUT)-amd64
     endif
-    ifneq ($(filter %86,$(PROC_P)),)
-	CFLAGS := $(CFLAGS) $(SSE_DEFAULT)
+    ifneq ($(filter %86,$(UNAME_M)),)
+		CFLAGS += $(SSE_DEFAULT)
         OUT := $(OUT)-i686
     endif
-    ifneq ($(filter arm%,$(PROC_P)),)
-	CFLAGS := $(CFLAGS) $(SSE_MAC_SILICON)
-        OUT := $(OUT)-arm
+    ifneq ($(filter aarch64%,$(UNAME_M)),)
+		CFLAGS += $(SSE_NATIVE)
+        OUT := $(OUT)-arm64
     endif
 endif
 
