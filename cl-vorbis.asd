@@ -4,9 +4,9 @@
   :author "Yukari Hafner <shinmera@tymoon.eu>"
   :maintainer "Yukari Hafner <shinmera@tymoon.eu>"
   :description "Bindings to stb_vorbis, a simple and free OGG/Vorbis decoding library"
-  :homepage "https://Shirakumo.github.io/cl-vorbis/"
-  :bug-tracker "https://github.com/Shirakumo/cl-vorbis/issues"
-  :source-control (:git "https://github.com/Shirakumo/cl-vorbis.git")
+  :homepage "https://shirakumo.org/docs/cl-vorbis/"
+  :bug-tracker "https://shirakumo.org/project/cl-vorbis/issues"
+  :source-control (:git "https://shirakumo.org/project/cl-vorbis.git")
   :serial T
   :components ((:file "package")
                (:file "low-level")
